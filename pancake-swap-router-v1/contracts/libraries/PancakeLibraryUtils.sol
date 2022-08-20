@@ -104,7 +104,7 @@ contract PancakeLibraryUtils {
         (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
     }
 
-    function getReservesWithPoolAddressAndUserInfo(address factory, address tokenA, address tokenB, address userAddress) public view returns (address poolAddress,uint reserveA, uint reserveB, uint totalSupply, uint userBalance) {
+    function getReservesWithPoolAddressAndUserBalance(address factory, address tokenA, address tokenB, address userAddress) public view returns (address poolAddress,uint reserveA, uint reserveB, uint totalSupply, uint userBalance) {
         (address token0,) = sortTokens(tokenA, tokenB);
         poolAddress = pairFor(factory, tokenA, tokenB);
         (uint reserve0, uint reserve1,) = IPancakePair(poolAddress).getReserves();
