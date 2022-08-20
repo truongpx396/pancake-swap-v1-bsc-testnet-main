@@ -104,6 +104,15 @@ contract PancakeLibraryUtils {
         (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
     }
 
+    function getReservesWithPoolAddressAndUserInfo(address factory, address tokenA, address tokenB, address userAddress) public view returns (address poolAddress,uint reserveA, uint reserveB, uint totalSupply, uint userBalance) {
+        (address token0,) = sortTokens(tokenA, tokenB);
+        poolAddress = pairFor(factory, tokenA, tokenB);
+        (uint reserve0, uint reserve1,) = IPancakePair(poolAddress).getReserves();
+        (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
+        totalSupply = IPancakePair(poolAddress).totalSupply();
+        userBalance = IPancakePair(poolAddress).balanceOf(userAddress);
+    }
+
     // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
     function quote(uint amountA, uint reserveA, uint reserveB) public pure returns (uint amountB) {
         require(amountA > 0, 'PancakeLibrary: INSUFFICIENT_AMOUNT');
