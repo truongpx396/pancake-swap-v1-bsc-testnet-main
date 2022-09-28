@@ -84,6 +84,14 @@ library SafeMath {
 contract PancakeLibraryUtils {
     using SafeMath for uint;
 
+    struct PoolInfo {
+        address poolAddress;
+        uint256 reserveA;
+        uint256 reserveB;
+        uint256 totalSupply;
+        uint256 userBalance;
+    }
+
     struct FarmingInfo {
         uint256 userStakeAmount;     
         uint256 userPendingReward; 
@@ -132,19 +140,30 @@ contract PancakeLibraryUtils {
         userBalance = IPancakePair(poolAddress).balanceOf(userAddress);
     }
 
+    function getPoolInfo(address factory, address tokenA, address tokenB, address userAddress) public view returns (PoolInfo memory poolInfo) {
+         (address token0,) = sortTokens(tokenA, tokenB);
+        address poolAddress = pairFor(factory, tokenA, tokenB);
+        poolInfo.poolAddress=poolAddress;
+        (uint reserve0, uint reserve1,) = IPancakePair(poolAddress).getReserves();
+        (poolInfo.reserveA, poolInfo.reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
+        poolInfo.totalSupply = IPancakePair(poolAddress).totalSupply();
+        poolInfo.userBalance = IPancakePair(poolAddress).balanceOf(userAddress);
+    }
+
     function getFarmingInfo(address masterChef, uint256 poolId,address userAddress) public view returns (FarmingInfo memory farmingInfo) {
         IMasterChef.UserInfo memory userInfo= IMasterChef(masterChef).userInfo(poolId,userAddress);
         farmingInfo.userStakeAmount = userInfo.amount;
         farmingInfo.userPendingReward=IMasterChef(masterChef).pendingSushi(poolId,userAddress);
     }
 
-    function getFarmingData(address factory, address tokenA, address tokenB, address userAddress,address masterChef,uint256 poolId) public view returns (address poolAddress,uint reserveA, uint reserveB, uint totalSupply, uint userBalance,FarmingInfo memory farmingInfo) {
+    function getFarmingData(address factory, address tokenA, address tokenB, address userAddress,address masterChef,uint256 poolId) public view returns (PoolInfo memory poolInfo,FarmingInfo memory farmingInfo) {
          (address token0,) = sortTokens(tokenA, tokenB);
-        poolAddress = pairFor(factory, tokenA, tokenB);
+        address poolAddress = pairFor(factory, tokenA, tokenB);
+        poolInfo.poolAddress=poolAddress;
         (uint reserve0, uint reserve1,) = IPancakePair(poolAddress).getReserves();
-        (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
-        totalSupply = IPancakePair(poolAddress).totalSupply();
-        userBalance = IPancakePair(poolAddress).balanceOf(userAddress);
+        (poolInfo.reserveA, poolInfo.reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
+        poolInfo.totalSupply = IPancakePair(poolAddress).totalSupply();
+        poolInfo.userBalance = IPancakePair(poolAddress).balanceOf(userAddress);
         
         farmingInfo=getFarmingInfo(masterChef,poolId,userAddress);
     }
