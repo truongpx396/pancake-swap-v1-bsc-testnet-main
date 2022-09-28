@@ -1,4 +1,5 @@
 pragma solidity >=0.5.0;
+pragma experimental ABIEncoderV2;
 
 
 interface IPancakePair {
@@ -52,6 +53,19 @@ interface IPancakePair {
     function initialize(address, address) external;
 }
 
+interface IMasterChef{
+     // Info of each user.
+    struct UserInfo {
+        uint256 amount;     // How many LP tokens the user has provided.
+        uint256 rewardDebt; // Reward debt. See explanation below.
+    }
+
+    function userInfo(uint256 key,address userAddress) external view returns (UserInfo memory);
+
+    function pendingSushi(uint256 pid, address user) external view returns (uint256);
+
+}
+
 // a library for performing overflow-safe math, courtesy of DappHub (https://github.com/dapphub/ds-math)
 library SafeMath {
     function add(uint x, uint y) internal pure returns (uint z) {
@@ -69,6 +83,11 @@ library SafeMath {
 
 contract PancakeLibraryUtils {
     using SafeMath for uint;
+
+    struct FarmingInfo {
+        uint256 userStakeAmount;     
+        uint256 userPendingReward; 
+    }
 
     // returns sorted token addresses, used to handle return values from pairs sorted in this order
     function sortTokens(address tokenA, address tokenB) public pure returns (address token0, address token1) {
@@ -111,6 +130,23 @@ contract PancakeLibraryUtils {
         (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
         totalSupply = IPancakePair(poolAddress).totalSupply();
         userBalance = IPancakePair(poolAddress).balanceOf(userAddress);
+    }
+
+    function getFarmingInfo(address masterChef, uint256 poolId,address userAddress) public view returns (FarmingInfo memory farmingInfo) {
+        IMasterChef.UserInfo memory userInfo= IMasterChef(masterChef).userInfo(poolId,userAddress);
+        farmingInfo.userStakeAmount = userInfo.amount;
+        farmingInfo.userPendingReward=IMasterChef(masterChef).pendingSushi(poolId,userAddress);
+    }
+
+    function getFarmingData(address factory, address tokenA, address tokenB, address userAddress,address masterChef,uint256 poolId) public view returns (address poolAddress,uint reserveA, uint reserveB, uint totalSupply, uint userBalance,FarmingInfo memory farmingInfo) {
+         (address token0,) = sortTokens(tokenA, tokenB);
+        poolAddress = pairFor(factory, tokenA, tokenB);
+        (uint reserve0, uint reserve1,) = IPancakePair(poolAddress).getReserves();
+        (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
+        totalSupply = IPancakePair(poolAddress).totalSupply();
+        userBalance = IPancakePair(poolAddress).balanceOf(userAddress);
+        
+        farmingInfo=getFarmingInfo(masterChef,poolId,userAddress);
     }
 
     // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
