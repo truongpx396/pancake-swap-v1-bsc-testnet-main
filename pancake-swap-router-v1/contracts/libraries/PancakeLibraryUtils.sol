@@ -53,12 +53,37 @@ interface IPancakePair {
     function initialize(address, address) external;
 }
 
+interface IERC20 {
+  function totalSupply() external view returns (uint256);
+  function decimals() external view returns (uint8);
+  function symbol() external view returns (string memory);
+  function name() external view returns (string memory);
+  function getOwner() external view returns (address);
+  function balanceOf(address account) external view returns (uint256);
+  function transfer(address recipient, uint256 amount) external returns (bool);
+  function allowance(address _owner, address spender) external view returns (uint256);
+  function approve(address spender, uint256 amount) external returns (bool);
+  function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+
+  event Transfer(address indexed from, address indexed to, uint256 value);
+  event Approval(address indexed owner, address indexed spender, uint256 value);
+}
+
 interface IMasterChef{
+    struct PoolInfo {
+        IERC20 lpToken;           // Address of LP token contract.
+        uint256 allocPoint;       // How many allocation points assigned to this pool. SUSHIs to distribute per block.
+        uint256 lastRewardBlock;  // Last block number that SUSHIs distribution occurs.
+        uint256 accSushiPerShare; // Accumulated SUSHIs per share, times 1e12. See below.
+    }
+
      // Info of each user.
     struct UserInfo {
         uint256 amount;     // How many LP tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
     }
+
+    function poolInfo(uint256 key) external view returns (PoolInfo memory);
 
     function userInfo(uint256 key,address userAddress) external view returns (UserInfo memory);
 
@@ -93,8 +118,11 @@ contract PancakeLibraryUtils {
     }
 
     struct FarmingInfo {
+        IERC20 lpToken;
         uint256 userStakeAmount;     
-        uint256 userPendingReward; 
+        uint256 userPendingReward;
+        uint256 poolAllocPoint; 
+        uint256 poolAccRewardPerShare;
     }
 
     // returns sorted token addresses, used to handle return values from pairs sorted in this order
@@ -154,6 +182,9 @@ contract PancakeLibraryUtils {
         IMasterChef.UserInfo memory userInfo= IMasterChef(masterChef).userInfo(poolId,userAddress);
         farmingInfo.userStakeAmount = userInfo.amount;
         farmingInfo.userPendingReward=IMasterChef(masterChef).pendingSushi(poolId,userAddress);
+        farmingInfo.lpToken=IMasterChef(masterChef).poolInfo(poolId).lpToken;
+        farmingInfo.poolAllocPoint=IMasterChef(masterChef).poolInfo(poolId).allocPoint;
+        farmingInfo.poolAccRewardPerShare=IMasterChef(masterChef).poolInfo(poolId).accSushiPerShare;
     }
 
     function getFarmingData(address factory, address tokenA, address tokenB, address userAddress,address masterChef,uint256 poolId) public view returns (PoolInfo memory poolInfo,FarmingInfo memory farmingInfo) {
