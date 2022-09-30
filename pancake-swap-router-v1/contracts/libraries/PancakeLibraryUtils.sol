@@ -119,7 +119,8 @@ contract PancakeLibraryUtils {
 
     struct FarmingInfo {
         IERC20 lpToken;
-        uint256 userStakeAmount;     
+        uint256 totalStakedAmount;
+        uint256 userStakedAmount;     
         uint256 userPendingReward;
         uint256 poolAllocPoint; 
         uint256 poolAccRewardPerShare;
@@ -180,9 +181,10 @@ contract PancakeLibraryUtils {
 
     function getFarmingInfo(address masterChef, uint256 poolId,address userAddress) public view returns (FarmingInfo memory farmingInfo) {
         IMasterChef.UserInfo memory userInfo= IMasterChef(masterChef).userInfo(poolId,userAddress);
-        farmingInfo.userStakeAmount = userInfo.amount;
+        farmingInfo.userStakedAmount = userInfo.amount;
         farmingInfo.userPendingReward=IMasterChef(masterChef).pendingSushi(poolId,userAddress);
         farmingInfo.lpToken=IMasterChef(masterChef).poolInfo(poolId).lpToken;
+        farmingInfo.totalStakedAmount=farmingInfo.lpToken.balanceOf(masterChef);
         farmingInfo.poolAllocPoint=IMasterChef(masterChef).poolInfo(poolId).allocPoint;
         farmingInfo.poolAccRewardPerShare=IMasterChef(masterChef).poolInfo(poolId).accSushiPerShare;
     }
