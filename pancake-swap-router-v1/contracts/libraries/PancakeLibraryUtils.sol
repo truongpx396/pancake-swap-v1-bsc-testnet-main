@@ -83,6 +83,10 @@ interface IMasterChef{
         uint256 rewardDebt; // Reward debt. See explanation below.
     }
 
+    function totalAllocPoint() external view returns (uint256);
+
+    function sushiPerBlock() external view returns (uint256);
+
     function poolInfo(uint256 key) external view returns (PoolInfo memory);
 
     function userInfo(uint256 key,address userAddress) external view returns (UserInfo memory);
@@ -120,10 +124,12 @@ contract PancakeLibraryUtils {
     struct FarmingInfo {
         IERC20 lpToken;
         uint256 totalStakedAmount;
+        uint256 totalAllocPoint;
+        uint256 poolAllocPoint; 
+        uint256 rewardsPerBlock;
+        uint256 userTotalBalance;
         uint256 userStakedAmount;     
         uint256 userPendingReward;
-        uint256 poolAllocPoint; 
-        uint256 poolAccRewardPerShare;
     }
 
     // returns sorted token addresses, used to handle return values from pairs sorted in this order
@@ -179,14 +185,19 @@ contract PancakeLibraryUtils {
         poolInfo.userBalance = IPancakePair(poolAddress).balanceOf(userAddress);
     }
 
+
     function getFarmingInfo(address masterChef, uint256 poolId,address userAddress) public view returns (FarmingInfo memory farmingInfo) {
-        IMasterChef.UserInfo memory userInfo= IMasterChef(masterChef).userInfo(poolId,userAddress);
-        farmingInfo.userStakedAmount = userInfo.amount;
-        farmingInfo.userPendingReward=IMasterChef(masterChef).pendingSushi(poolId,userAddress);
+        //Fetch general farming info
         farmingInfo.lpToken=IMasterChef(masterChef).poolInfo(poolId).lpToken;
         farmingInfo.totalStakedAmount=farmingInfo.lpToken.balanceOf(masterChef);
+        farmingInfo.totalAllocPoint=IMasterChef(masterChef).totalAllocPoint();
         farmingInfo.poolAllocPoint=IMasterChef(masterChef).poolInfo(poolId).allocPoint;
-        farmingInfo.poolAccRewardPerShare=IMasterChef(masterChef).poolInfo(poolId).accSushiPerShare;
+        farmingInfo.rewardsPerBlock=IMasterChef(masterChef).sushiPerBlock();
+        //Fetch user's info
+        IMasterChef.UserInfo memory userInfo= IMasterChef(masterChef).userInfo(poolId,userAddress);
+        farmingInfo.userTotalBalance=farmingInfo.lpToken.balanceOf(userAddress);
+        farmingInfo.userStakedAmount = userInfo.amount;
+        farmingInfo.userPendingReward=IMasterChef(masterChef).pendingSushi(poolId,userAddress);
     }
 
     function getFarmingData(address factory, address tokenA, address tokenB, address userAddress,address masterChef,uint256 poolId) public view returns (PoolInfo memory poolInfo,FarmingInfo memory farmingInfo) {
