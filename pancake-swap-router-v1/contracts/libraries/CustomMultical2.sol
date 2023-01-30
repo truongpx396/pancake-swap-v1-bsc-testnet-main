@@ -20,6 +20,11 @@ contract CustomMulticall2 {
         bytes returnData;
     }
 
+    struct NativeBalance{
+        address walletAddress;
+        uint256 balance;
+    }
+
     function aggregate(Call[] memory calls) public returns (uint256 blockNumber, bytes[] memory returnData) {
         blockNumber = block.number;
         returnData = new bytes[](calls.length);
@@ -70,7 +75,7 @@ contract CustomMulticall2 {
     }
 
 
-    function tryAggregateBalances(bool requireSuccess, Call[] memory calls,address userAddress) public returns (Result[] memory returnData,uint256 userNativeBalance) {
+    function tryAggregateTokenBalances(bool requireSuccess, Call[] memory calls,address userAddress) public returns (Result[] memory returnData,uint256 userNativeBalance) {
         returnData = new Result[](calls.length);
         for(uint256 i = 0; i < calls.length; i++) {
             (bool success, bytes memory ret) = calls[i].target.call(calls[i].callData);
@@ -82,6 +87,15 @@ contract CustomMulticall2 {
             returnData[i] = Result(success, ret);
         }
         userNativeBalance=getEthBalance(userAddress);
+    }
+
+    function tryAggregateNativeBalances(Call[] memory calls) public view returns (NativeBalance[] memory returnData) {
+        returnData = new NativeBalance[](calls.length);
+        uint256 userNativeBalance;
+        for(uint256 i = 0; i < calls.length; i++) {
+            userNativeBalance=getEthBalance(calls[i].target);
+            returnData[i] = NativeBalance(calls[i].target, userNativeBalance);
+        }
     }
 
     function tryBlockAndAggregate(bool requireSuccess, Call[] memory calls) public returns (uint256 blockNumber, bytes32 blockHash, Result[] memory returnData) {
